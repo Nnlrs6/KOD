@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>KOD</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      margin-bottom: 10px;
+      padding: 5px;
+      font-family: monospace;
+    }
+    input[type="text"],
+    input[type="number"] {
+      padding: 5px;
+      font-size: 1em;
+    }
+    button {
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    section {
+      margin-bottom: 40px;
+      border: 1px solid #ccc;
+      padding: 15px;
+      border-radius: 8px;
+      background: #f9f9f9;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid #aaa;
+    }
+    th, td {
+      padding: 6px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>KOD</h1>
+
+  <!-- SECTION 1 : Analyse de codes -->
+  <section id="analysis-section">
+    <h2>Analyse de Codes</h2>
+    <p>Entrez vos codes d'exemple (un code par ligne) :</p>
+    <textarea id="input-codes" placeholder="Exemple :&#10;DVMT9N&#10;U3Ykid&#10;CkD9DN"></textarea>
+    <button id="analyze-button">Analyser</button>
+    <div id="analysis-result"></div>
+  </section>
+
+  <!-- SECTION 2 : Génération de codes -->
+  <section id="generation-section">
+    <h2>Génération de Codes</h2>
+    <label for="num-codes">Nombre de codes à générer :</label>
+    <input type="number" id="num-codes" value="100" min="1" />
+    <button id="generate-button">Générer</button>
+    <p>Les codes générés (6 caractères chacun) :</p>
+    <textarea id="generated-codes" placeholder="Les codes générés apparaîtront ici..." readonly></textarea>
+  </section>
+
+  <!-- SECTION 3 : Test automatique sur un site -->
+  <section id="test-section">
+    <h2>Test Automatique sur un Site</h2>
+    <p>
+      Entrez l'URL du site avec le placeholder <strong>{code}</strong>.  
+      Par exemple : <code>https://exemple.com/voucher?code={code}</code>
+    </p>
+    <input type="text" id="site-url" placeholder="https://exemple.com/voucher?code={code}" style="width: 80%;" />
+    <button id="test-button">Tester les Codes</button>
+    <div id="test-results"></div>
+  </section>
+
+  <script>
+    // Ensemble de caractères utilisés pour la génération
+    const charPool = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    // Fonction pour générer un code aléatoire de 6 caractères
+    function generateRandomCode(length = 6) {
+      let code = "";
+      for (let i = 0; i < length; i++) {
+        code += charPool.charAt(Math.floor(Math.random() * charPool.length));
+      }
+      return code;
+    }
+
+    // Génère une liste de n codes
+    function generateCodes(n, length = 6) {
+      let codes = [];
+      for (let i = 0; i < n; i++) {
+        codes.push(generateRandomCode(length));
+      }
+      return codes;
+    }
+
+    // Événement sur le bouton de génération
+    document.getElementById("generate-button").addEventListener("click", function() {
+      const num = parseInt(document.getElementById("num-codes").value) || 100;
+      const codes = generateCodes(num);
+      document.getElementById("generated-codes").value = codes.join("\n");
+    });
+
+    // Analyse les codes entrés par l'utilisateur dans la textarea
+    function analyzeCodes(input) {
+      const lines = input.split("\n").map(line => line.trim()).filter(line => line !== "");
+      const results = {
+        total: lines.length,
+        averageLength: 0,
+        details: []
+      };
+      let totalLen = 0;
+      lines.forEach(code => {
+        let upperCount = 0, lowerCount = 0, digitCount = 0, others = 0;
+        for (let char of code) {
+          if (/[A-Z]/.test(char)) {
+            upperCount++;
+          } else if (/[a-z]/.test(char)) {
+            lowerCount++;
+          } else if (/[0-9]/.test(char)) {
+            digitCount++;
+          } else {
+            others++;
+          }
+        }
+        totalLen += code.length;
+        results.details.push({
+          code,
+          length: code.length,
+          upperCount,
+          lowerCount,
+          digitCount,
+          others
+        });
+      });
+      results.averageLength = (lines.length > 0) ? totalLen / lines.length : 0;
+      return results;
+    }
+
+    // Événement sur le bouton d'analyse
+    document.getElementById("analyze-button").addEventListener("click", function() {
+      const input = document.getElementById("input-codes").value;
+      const analysis = analyzeCodes(input);
+      let resultHTML = `<p>Total des codes analysés : ${analysis.total}</p>`;
+      resultHTML += `<p>Longueur moyenne : ${analysis.averageLength.toFixed(2)}</p>`;
+      resultHTML += `<table>
+                       <tr>
+                         <th>Code</th>
+                         <th>Longueur</th>
+                         <th>Majuscules</th>
+                         <th>Minuscules</th>
+                         <th>Chiffres</th>
+                         <th>Autres</th>
+                       </tr>`;
+      analysis.details.forEach(detail => {
+        resultHTML += `<tr>
+                         <td>${detail.code}</td>
+                         <td>${detail.length}</td>
+                         <td>${detail.upperCount}</td>
+                         <td>${detail.lowerCount}</td>
+                         <td>${detail.digitCount}</td>
+                         <td>${detail.others}</td>
+                       </tr>`;
+      });
+      resultHTML += `</table>`;
+      document.getElementById("analysis-result").innerHTML = resultHTML;
+    });
+
+    // Fonction pour tester les codes sur le site indiqué
+    async function testCodesOnSite(codes, siteUrl) {
+      const testResultsContainer = document.getElementById("test-results");
+      testResultsContainer.innerHTML = "<p>Test en cours...</p>";
+
+      let tableHTML = `<table>
+                         <tr>
+                           <th>Code</th>
+                           <th>Statut</th>
+                           <th>Réponse (extrait)</th>
+                         </tr>`;
+      // Itération séquentielle pour éviter les surcharges (attention aux CORS)
+      for (let code of codes) {
+        // Remplace le placeholder {code} par le code courant
+        const testUrl = siteUrl.replace("{code}", code);
+        try {
+          const response = await fetch(testUrl);
+          const text = await response.text();
+          let statusText = response.ok ? "Succès" : "Erreur " + response.status;
+          tableHTML += `<tr>
+                          <td>${code}</td>
+                          <td>${statusText}</td>
+                          <td>${text.substring(0, 100)}...</td>
+                        </tr>`;
+        } catch (error) {
+          tableHTML += `<tr>
+                          <td>${code}</td>
+                          <td>Erreur</td>
+                          <td>${error.toString()}</td>
+                        </tr>`;
+        }
+      }
+      tableHTML += `</table>`;
+      testResultsContainer.innerHTML = tableHTML;
+    }
+
+    // Événement sur le bouton de test
+    document.getElementById("test-button").addEventListener("click", async function() {
+      const siteUrl = document.getElementById("site-url").value;
+      if (!siteUrl.includes("{code}")) {
+        alert("L'URL doit contenir le placeholder {code} pour le remplacement.");
+        return;
+      }
+      const codesText = document.getElementById("generated-codes").value;
+      let codesList = codesText.split("\n").map(line => line.trim()).filter(line => line !== "");
+      if (codesList.length === 0) {
+        alert("Veuillez générer ou saisir des codes pour tester sur le site.");
+        return;
+      }
+      // Désactivation temporaire du bouton pendant le test
+      document.getElementById("test-button").disabled = true;
+      await testCodesOnSite(codesList, siteUrl);
+      document.getElementById("test-button").disabled = false;
+    });
+  </script>
+</body>
+</html>
